@@ -35,7 +35,7 @@ func main() {
 
 func create_socket() (*netSocket, error) {
 	ipFlag := flag.String("ip_addr", "127.0.0.1", "The IP address to use")
-	portFlag := flag.Int("port", 80, "The port to use.")
+	portFlag := flag.Int("port", 8080, "The port to use.")
 	flag.Parse()
 
 	ip := net.ParseIP(*ipFlag)
