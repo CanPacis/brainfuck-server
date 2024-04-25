@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Primary Meta Tags -->
+    <title>Writing a Server with Brainfuck</title>
+    <meta name="title" content="Writing a Server with Brainfuck" />
+    <meta
+      name="description"
+      content="I want to make an HTTP server with Brainfuck and serve a webpage with it. Brainfuck already has the primitives to deal with I/O, but it is not enough so let me take you aside while I explain what I know about I/O. "
+    />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://brainfuck.canpacis.net" />
+    <meta property="og:title" content="Writing a Server with Brainfuck" />
+    <meta
+      property="og:description"
+      content="I want to make an HTTP server with Brainfuck and serve a webpage with it. Brainfuck already has the primitives to deal with I/O, but it is not enough so let me take you aside while I explain what I know about I/O. "
+    />
+    <meta
+      property="og:image"
+      content=""
+    />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://brainfuck.canpacis.net" />
+    <meta property="twitter:title" content="Writing a Server with Brainfuck" />
+    <meta
+      property="twitter:description"
+      content="I want to make an HTTP server with Brainfuck and serve a webpage with it. Brainfuck already has the primitives to deal with I/O, but it is not enough so let me take you aside while I explain what I know about I/O. "
+    />
+    <meta
+      property="twitter:image"
+      content="https://metatags.io/images/meta-tags.png"
+    />
+
+    <title>Writing a Server with Brainfuck | Muhammed Ali CAN</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/go.min.js"></script>
+    <script>
+      (() => {
+        var e = (() => {
+          "use strict";
+          return (e) => {
+            const n = { className: "literal", begin: /[+-]+/, relevance: 0 };
+            return {
+              name: "Brainfuck",
+              aliases: ["bf"],
+              contains: [
+                e.COMMENT(/[^\[\]\.,\+\-\*<> \r\n]/, /[\[\]\.,\+\-\*<> \r\n]/, {
+                  contains: [
+                    {
+                      match: /[ ]+[^\[\]\.,\+\-<> \r\n]/,
+                      relevance: 0,
+                    },
+                  ],
+                  returnEnd: !0,
+                  relevance: 0,
+                }),
+                {
+                  className: "title",
+                  begin: "[\\[\\]]",
+                  relevance: 0,
+                },
+                { className: "string", begin: "[\\.,\*]", relevance: 0 },
+                { begin: /(?=\+\+|--)/, contains: [n] },
+                n,
+              ],
+            };
+          };
+        })();
+        hljs.registerLanguage("brainfuck", e);
+      })();
+    </script>
+    <script>
+      function updateHighlights() {
+        const url = new URL(window.location.href);
+
+        if (url.hash.trim().length > 0) {
+          const hashElement = document.querySelector(url.hash);
+          if (hashElement) {
+            hashElement.classList.add("highlighted");
+          }
+        }
+      }
+      updateHighlights();
+
+      function goToLie() {
+        window.history.pushState({}, "", "#lie");
+        updateHighlights();
+      }
+
+      hljs.highlightAll();
+    </script>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --text: light-dark(#3e3c48, #ebe9fc);
+        --background: light-dark(#fbfbfe, #010104);
+        --primary: light-dark(#2f27ce, #8a84ff);
+        --secondary: light-dark(#dedcff, #03003c);
+        --selection: light-dark(#dedcff, #4f4abb);
+        --tertiary: light-dark(#f2f1ff, #02002f);
+        --highlight: light-dark(rgb(233, 233, 46), #6c6500);
+      }
+
+      body {
+        margin: 0;
+        padding: 0;
+        color: var(--text);
+        background-color: var(--background);
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue",
+          sans-serif;
+      }
+
+      ::selection,
+      ::-moz-selection {
+        background-color: var(--selection);
+      }
+
+      h1 {
+        margin: 0;
+        padding: 0;
+        color: var(--primary);
+        text-align: center;
+        font-size: 2.4rem;
+      }
+
+      .author {
+        display: flex;
+        margin-top: 2rem;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .author .image,
+      .author .image img {
+        width: 60px;
+        height: 60px;
+        border-radius: 60px;
+      }
+
+      .author .meta {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .author .meta span:last-child {
+        font-size: 0.875rem;
+      }
+
+      main {
+        max-width: min(760px, 90%);
+        margin: 40px auto;
+        line-height: 1.5;
+      }
+
+      main h1,
+      main h2,
+      main h3,
+      main h4,
+      main h5,
+      main h6 {
+        line-height: 1.3;
+      }
+
+      main a {
+        color: var(--primary);
+        text-decoration: none;
+        display: inline-block;
+        position: relative;
+        cursor: pointer;
+      }
+
+      main a::after {
+        content: "";
+        width: 108%;
+        display: inline-block;
+        position: absolute;
+        left: -4%;
+        bottom: 0;
+        height: 1px;
+        background-color: var(--primary);
+        z-index: -1;
+        transition: 100ms height ease-in-out;
+        border-radius: 0.125rem;
+      }
+
+      main a:hover {
+        color: var(--background);
+      }
+
+      main a:hover::after {
+        height: 100%;
+      }
+
+      main blockquote {
+        background-color: var(--secondary);
+        padding: 0.875rem 1rem;
+        border-radius: 0.25rem;
+        border-left: 0.5rem solid var(--primary);
+        margin: 1rem 0;
+      }
+
+      main blockquote::after {
+        content: attr(data-by);
+        display: block;
+        margin-top: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--primary);
+      }
+
+      main kbd {
+        background-color: var(--secondary);
+        padding: 0.125rem 0.25rem;
+        border-radius: 0.25rem;
+        font-size: 0.875rem;
+        font-family: monospace;
+      }
+
+      .highlighted {
+        background-color: var(--highlight);
+      }
+    </style>
+    <style>
+      .hljs {
+        display: block;
+        overflow-x: auto;
+        padding: 0.5em;
+        background: #282a36;
+        border-radius: 0.25rem;
+      }
+
+      .hljs-built_in,
+      .hljs-selector-tag,
+      .hljs-section,
+      .hljs-link {
+        color: #8be9fd;
+      }
+
+      .hljs-keyword {
+        color: #ff79c6;
+      }
+
+      .hljs,
+      .hljs-subst {
+        color: #f8f8f2;
+      }
+
+      .hljs-title,
+      .hljs-attr,
+      .hljs-meta-keyword {
+        font-style: italic;
+        color: #50fa7b;
+      }
+
+      .hljs-string,
+      .hljs-meta,
+      .hljs-name,
+      .hljs-type,
+      .hljs-symbol,
+      .hljs-bullet,
+      .hljs-addition,
+      .hljs-variable,
+      .hljs-template-tag,
+      .hljs-template-variable {
+        color: #f1fa8c;
+      }
+
+      .hljs-comment,
+      .hljs-quote,
+      .hljs-deletion {
+        color: #6272a4;
+      }
+
+      .hljs-keyword,
+      .hljs-selector-tag,
+      .hljs-literal,
+      .hljs-title,
+      .hljs-section,
+      .hljs-doctag,
+      .hljs-type,
+      .hljs-name,
+      .hljs-strong {
+        font-weight: bold;
+      }
+
+      .hljs-literal,
+      .hljs-number {
+        color: #bd93f9;
+      }
+
+      .hljs-emphasis {
+        font-style: italic;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Writing a Server with Brainfuck</h1>
+      <div class="author">
+        <div class="image">
+          <img
+            src="https://avatars.githubusercontent.com/u/37307107?s=400&u=714a6364c14a6265eb4d53736e435323cbe7d906&v=4"
+            alt="image"
+          />
+        </div>
+        <div class="meta">
+          <span><b>Muhammed Ali CAN</b></span>
+          <span>25.04.2024</span>
+        </div>
+      </div>
+      <h2>Introduction</h2>
+      <p>
+        Esoteric languages have always been an interesting subject for me. The
+        challenge of creating something out of thin air and doing so with wild
+        constraints is intriguing. But more than writing in those languages,
+        writing those languages have always been more interesting to me. Writing
+        tokenizers and parsers, creating an interpreter or even trying to
+        compile a code that I designed is thrilling.
+      </p>
+
+      <p>
+        Another passion of mine lately has become the 'Brainfuck' language. It
+        is so simple yet so capable. Maybe not as capable as I would like it to
+        be but I digress! Or do I? No I don't! I want it to be more capable and
+        I am going to do it here with you. But first, I need to explain the
+        language to you.
+      </p>
+
+      <p>
+        Brainfuck is a dead simple
+        <a
+          href="https://en.wikipedia.org/wiki/Turing_machine"
+          rel="noreferrer noopener"
+          target="_blank"
+          >Turing machine</a
+        >
+        that adds some simple I/O commands to another dead simple Turing machine
+        <a
+          href="https://en.wikipedia.org/wiki/P%E2%80%B2%E2%80%B2"
+          rel="noreferrer noopener"
+          target="_blank"
+          >P′′</a
+        >. Suppose you have a limited tape, and in that tape you have cells that
+        can hold a byte of value. In BF you can crawl around these cells, mutate
+        their values and maybe output their values or even read a value from the
+        terminal.
+      </p>
+
+      <h2>8 commandments</h2>
+      <p>
+        You have a byte array, at least 30.000 in length, and a pointer that
+        starts at the beginning of this list. With commands <kbd>></kbd> and
+        <kbd><</kbd>, you can change the position of your pointer and with
+        <kbd>+</kbd> and <kbd>-</kbd> you can increment or decrement the value a
+        cell holds to your heart's content. With the <kbd>.</kbd> command you
+        can write the value of your current cell, the cell your pointer points
+        to, to the terminal and with the <kbd>,</kbd> command you can read a
+        single byte from the terminal and store it in the cell your pointer
+        points to. And last but not least, we have the loops. With the
+        <kbd>[</kbd> and <kbd>]</kbd> commands you can create loops. What is
+        inside these brackets becomes your loop to run. If the cell your pointer
+        points to is zero, you skip the loop and continue with the next command.
+        If it is not zero, you execute the commands inside the loop until the
+        cell your pointer points to becomes zero.
+      </p>
+
+      <h2>They Are All Just Files!</h2>
+      <p>
+        To accomplish what I want to do, I need another command and hear me out,
+        this will all make sense. I want to make an HTTP server with Brainfuck
+        and serve a webpage with it. Brainfuck already has the primitives to
+        deal with I/O, but it is not enough so let me take you aside while I
+        explain what I know about I/O.
+      </p>
+
+      <aside>
+        I don't know much. But I know that Brainfuck's I/O deals with the
+        terminal, meaning you can read from it and write to it. And I know that
+        in UNIX-like systems, the terminal is just... a file. Something you can
+        read from, and something you can write to. In C, you can open a file,
+        get its descriptor and write or read from it with syscalls using that
+        descriptor. And I know that, in essence, TCP connections, and by
+        extension HTTP connections, are also files that can have descriptors.
+        And I also know that the webpage I want to serve is also a file that can
+        have a descriptor, but I guess you knew that too. They are all just
+        files!
+      </aside>
+
+      <p>
+        Sidenote, they are not actually just all files, but they behave like so,
+        so in our case there is no functional difference.
+      </p>
+
+      <h2>The Blasphemy</h2>
+
+      <p>
+        You are probably seeing where I am going with this. What if, in
+        Brainfuck, I could specify the destination of my I/O operations so that
+        I can read from an HTML file and write to an HTTP connection.
+      </p>
+
+      <p>
+        The idea is simple, I will add another command to the Brainfuck language
+        to change its target file descriptor. I will then create a simple server
+        in another language and accept connections. Whenever I get a connection,
+        I will pass the connection's and my HTML file's descriptors to my own
+        Brainfuck runtime and read and write switching between my descriptor
+        targets.
+      </p>
+
+      <p>
+        The <kbd>*</kbd> command will read the value the pointer is currently
+        pointing to and set that as the target file descriptor. Any
+        <kbd>.</kbd> or <kbd>,</kbd> operations from that point on, will work on
+        that target.
+      </p>
+
+      <h2>Runtime</h2>
+
+      <p id="lie">
+        I will create the Brainfuck language from scratch with Go, doing what I
+        love to do, writing lexers and parsers, creating an interpreter. We'll
+        have fun I promise.
+      </p>
+
+      <blockquote data-by="- Rob Pike, co-creator of Go">
+        Writing lexers is easy anyone can do it, especially
+        <em>programmers</em>.
+      </blockquote>
+
+      <p>
+        Sike! I'm going to use
+        <a
+          href="https://github.com/bzick/tokenizer"
+          rel="noreferrer noopener"
+          target="_blank"
+          >this</a
+        >
+        tokenizer to lex my input stream. Contrary to Rob Pike's belief, I am
+        not capable of such things. I am a soy dev react fan boy who day dreams
+        about writing svelte in his full time job
+        <b>(Currently unemployed btw 😉😉)</b>. Jokes aside, I just want to get
+        over this part so I can get to the HTTP part. So
+        <a onclick="goToLie()">this</a> was a lie. Don't believe everything you
+        read on the internet.
+      </p>
+
+      <p>
+        Here is the lexer, it takes an input and splits it into these tokens so
+        that I can parse it.
+      </p>
+
+      <pre>
+        <code class="language-go">
+func new_lexer() *tokenizer.Tokenizer {
+  lexer := tokenizer.New()
+  lexer.DefineTokens(PlusToken, []string{"+"})
+  lexer.DefineTokens(MinusToken, []string{"-"})
+  lexer.DefineTokens(ChevronRightToken, []string{">"})
+  lexer.DefineTokens(ChevronLeftToken, []string{"<"})
+  lexer.DefineTokens(OpenBracketsToken, []string{"["})
+  lexer.DefineTokens(CloseBracketsToken, []string{"]"})
+  lexer.DefineTokens(DotToken, []string{"."})
+  lexer.DefineTokens(CommaToken, []string{","})
+  // Here is our new command
+  lexer.DefineTokens(StarToken, []string{"*"})
+  // Here is a cheeky little debug token to help me write this insanity
+  lexer.DefineTokens(DebugToken, []string{"debug"})
+
+  return lexer
+}
+        </code>
+      </pre>
+
+      <p>
+        We will need
+        <a
+          href="https://en.wikipedia.org/wiki/Abstract_syntax_tree"
+          rel="noreferrer noopener"
+          target="_blank"
+          >AST</a
+        >
+        for parsing so, here is the simplest ast you can see.
+      </p>
+
+      <pre>
+        <code class="language-go">
+type op_kind string
+
+type op interface {
+  kind() op_kind
+  String() string
+}
+
+type ast struct {
+  body []op
+}
+        </code>
+      </pre>
+
+      <p>
+        The <kbd>op</kbd> interface describes an operation like moving left on
+        the tape or incrementing a cell. I then create each operation as a
+        struct that implements this interface. Here is the move operation.
+      </p>
+
+      <pre>
+        <code class="language-go">
+// a direction for moving the pointer
+type dir string
+
+const (
+  move_left  dir = "move:left"
+  move_right dir = "move:right"
+)
+
+type move_op struct {
+  dir dir
+}
+        </code>
+      </pre>
+
+      <p>I am sure you can imagine the rest of the structs yourself.</p>
+
+      <p>
+        And here is my parse function, although heavily edited for your viewing
+        pleasure, it captures the gist of the action.
+      </p>
+
+      <pre>
+        <code class="language-go">
+func parse(input []byte) ast {
+  // I create a lexer and feed my input to it
+  lexer := new_lexer()
+  stream := lexer.ParseBytes(input)
+  defer stream.Close()
+
+  // Create my ast
+  program := ast{body: []op{}}
+
+  // Iterate over the tokens and create operations
+  // Brainfuck is a relatively easy language to parse
+  for stream.IsValid() {
+    field := stream.CurrentToken()
+
+    switch field.Key() {
+    case PlusToken:
+      program.body = append(program.body, mutate_op{mutation: increment})
+    case MinusToken:
+      program.body = append(program.body, mutate_op{mutation: decrement})
+    case ChevronRightToken:
+      program.body = append(program.body, move_op{dir: move_right})
+    case ChevronLeftToken:
+      program.body = append(program.body, move_op{dir: move_left})
+    case DotToken:
+      program.body = append(program.body, io_op{io: write})
+    case CommaToken:
+      program.body = append(program.body, io_op{io: read})
+    case StarToken:
+      program.body = append(program.body, target_op{})
+    case DebugToken:
+      program.body = append(program.body, debug_op{})
+    default:
+      // If token is none of these, then it is a comment
+      program.body = append(program.body, comment_op{raw: field.ValueString()})
+    }
+
+    stream.GoNext()
+  }
+
+  return program
+}
+        </code>
+      </pre>
+
+      <p>
+        Now we are in the crux of it all. We have our AST, we will create an
+        interpreter and run the monstrosity. This time I will bore you with the
+        details.
+      </p>
+
+      <p>
+        Here, I have an <kbd>Interpreter</kbd> struct that holds our machine.
+      </p>
+
+      <pre>
+        <code class="language-go">
+type Interpreter struct {
+  // our tape
+  tape    [30000]byte
+  pointer int
+  ast     ast
+  // this is the important part
+  fd      int
+}
+
+// let's create a function that initializes our interpreter
+func NewInterpreter(program ast) Interpreter {
+  return Interpreter{
+    tape:    [30000]byte{},
+    pointer: 0,
+    ast:     program,
+    fd:      1, // 1 is stdout's file descriptor, so initially everything will be written to or read from the terminal
+  }
+}
+        </code>
+      </pre>
+
+      <p>
+        Simple enough right? Now we need to run our program. We will iterate
+        over our AST and execute the operations. Here is the
+        <kbd>run_context</kbd> function that interprets a slice of
+        <kbd>op</kbd>s.
+      </p>
+
+      <pre>
+        <code  class="language-go">
+func (i *Interpreter) run_context(body []op) {
+  for _, op := range body {
+    switch op := op.(type) {
+    // Increment or decrement, this is simple
+    case mutate_op:
+      if op.mutation == increment {
+        i.tape[i.pointer]++
+      } else {
+        i.tape[i.pointer]--
+      }
+    // Let's move our pointer
+    case move_op:
+      if op.dir == move_right {
+        i.pointer++
+      } else {
+        i.pointer--
+      }
+
+      // I'm going to clamp the pointer to the tape's bounds.
+      // I am not sure what is the behaviour of Brainfuck 
+      // but why not create some fragmantation, 
+      // beats having index out of bounds errors.
+      if i.pointer < 0 {
+        i.pointer = 0
+      }
+      if i.pointer > 30000 {
+        i.pointer = 30000
+      }
+    // Loop operations have a body field, let's recursively run 'em
+    case loop_op:
+      for i.tape[i.pointer] != 0 {
+        i.run_context(op.body)
+      }
+    // This is the important part
+    case io_op:
+      if op.io == write {
+        // We look at our tape and write its value to 
+        // the current file descriptor with syscall
+        syscall.Write(i.fd, []byte{i.tape[i.pointer]})
+      } else {
+        // Again, we read from our source with syscall
+        b := [1]byte{}
+        syscall.Read(i.fd, b[:])
+        i.tape[i.pointer] = Cell(b[0])
+      }
+    // This is the command that changes our file descriptor
+    case target_op:
+      i.fd = int(i.tape[i.pointer])
+    case debug_op:
+      // prints some debug info
+    }
+  }
+}
+        </code>
+      </pre>
+
+      <p>
+        As you can see, we convert our single byte to an int to keep it as a
+        file descriptor. This then raises the concern of 'what happens if our
+        file descriptor does not fit 8 bits?'. Come to think of it, how would we
+        read from a utf-8 file that does not just hold 8 bit characters?
+      </p>
+
+      <p>
+        I could make the runtime use <kbd>uint32</kbd> values instead of
+        <kbd>byte</kbd>s but that would break other programs written in
+        Brainfuck, cause you see, when a program runs a <kbd>-</kbd> command on
+        a cell that has a <kbd>0</kbd> value, the byte wraps around and you get
+        a <kbd>255</kbd> value on the cell or vice versa.
+      </p>
+
+      <p>
+        But then again, if I made the cell values bunch of <kbd>uint32</kbd>s it
+        would be easy to support unicode, because Go has a nifty
+        <kbd>rune</kbd> type that I can just use. So... more fragmantation. I
+        will use <kbd>uint32</kbd> instead of a byte, but maybe we can add a
+        flag to the program to use <kbd>byte</kbd>s as well.
+      </p>
+
+      <pre>
+        <code class="language-go">
+type Interpreter struct {
+-  tape    [30000]byte
++  tape    [30000]uint32
+}
+        </code>
+      </pre>
+
+      <p>
+        With that, our runtime is ready! I cooked up a custom http server that
+        just uses <kbd>syscall</kbd>s and gives me the control over the
+        connection. And when I say 'I', I mean I found
+        <a
+          href="https://gist.github.com/jschaf/93f37aedb5327c54cb356b2f1f0427e3"
+          rel="noreferrer noopener"
+          target="_blank"
+          >an excellent github gist</a
+        >
+        that does what I want. So let me show you the server, where it matters.
+      </p>
+
+      <h2>Run Time</h2>
+
+      <pre>
+        <code class="language-go">
+// let's create the server
+socket, err := create_socket()
+if err != nil {
+  panic(err)
+}
+defer socket.Close()
+
+for {
+  // and one by one accept connections
+  w, e := socket.Accept()
+  if e != nil {
+    log.Println(e.Error())
+  }
+
+  // here I have my file and I can get its descriptor with .Fd() function
+  content, _ := os.OpenFile("./content.html", os.O_RDONLY, 0644)
+  // and here I have my connection's descriptor
+  w.fd
+
+  // I need to run a Brainfuck program that uses these to respond to the client
+	
+  content.Close()
+  w.Close()
+}
+        </code>
+      </pre>
+
+      <p>
+        I will pass the file descriptors I acquired to the programs tape, so it
+        will have a head start. Let's write Brainfuck!
+      </p>
+
+      <pre>
+        <code class="language-brainfuck">
+our program will have the HTML file's descriptor at index 0 and the http descriptor at index 1
+we will read the entire file and write to the connection
+so as not to mess with our descriptors I will first go to 
+cell index 2
+
+* switch to HTML source
+>> go to empty cell
+
++ increment by 1 because we will go into a loop and we don't want to skip it
+we will loop until the byte we read from the file is 0
+[
+  , this will read the byte from the file into this cell
+  < * go back to http target and switch to it
+  > come back to data cell
+  . write the data cell to the connection
+  << * go back to the file and switch to it
+  >> come back to the data cell
+  we leave the pointer state and the file descriptor state as we started the loop
+]
+        </code>
+      </pre>
+
+      <p>
+        Because Brainfuck deals with I/O 1 byte at a time, we switch between
+        targets and sources and loop over each byte of the HTML file and write
+        to the http connection. One quick test with my browser of choice shows
+        that this code is not working. Why? Because the raw implementation of
+        the http server requires us to send the http headers, as it is only a
+        socket and nothing else. So I am going to preare a file that contains
+        the http headers and before sending the HTML file, we will send the
+        headers. So let me show you the final Go code.
+      </p>
+
+      <pre>
+        <code class="language-go">
+// let's create the server
+socket, err := create_socket()
+if err != nil {
+  panic(err)
+}
+defer socket.Close()
+
+for {
+  // and one by one accept connections
+  w, e := socket.Accept()
+  if e != nil {
+    log.Println(e.Error())
+  }
+
+  // here I have my header file and I can get its descriptor with .Fd() function
+  header, _ := os.OpenFile("./header.html", os.O_RDONLY, 0644)
+  // here I have my file and I can get its descriptor with .Fd() function
+  content, _ := os.OpenFile("./content.html", os.O_RDONLY, 0644)
+  // and here I have my connection's descriptor
+  w.fd
+
+  // I will run my server.bf file, with descriptors as arguments
+  bfx.RunFile("./server.bf", uint32(header.Fd()), uint32(content.Fd()), uint32(w.Fd()))
+	
+  header.Close()
+  content.Close()
+  w.Close()
+}
+        </code>
+      </pre>
+
+      <p>Here is the header file.</p>
+
+      <pre>
+        <code>
+HTTP/1.1 200 OK
+Content-Type: text/html; charset=utf-8
+Content-Length: // I will hard code this manually based on the content
+
+
+        </code>
+      </pre>
+
+      <p>Let's go over the final Brainfuck code once and for all.</p>
+
+      <pre>
+        <code class="language-brainfuck">
+let's go to cell index 3 this time because we have
+header at 0
+content at 1
+http at 2
+
+* switch to HTML source
+>>> go to empty cell
+
++ increment by 1 for the loop
+we first read/write the header
+[
+  , this will read the byte from the file into this cell
+  < * go back to http target and switch to it
+  > come back to data cell
+  . write the data cell to the connection
+  <<< * go back to the header and switch to it (notice the triple left)
+  >>> come back to the data cell
+]
+
+the last written byte was 0 so our current cell is 0
++ increment by 1 for the loop
+we now write the content
+[
+  , this will read the byte from the file into this cell
+  < * go back to http target and switch to it
+  > come back to data cell
+  . write the data cell to the connection
+  << * go back to the header and switch to it (only double left)
+  >> come back to the data cell
+]
+        </code>
+      </pre>
+
+      <p>
+        And with that, our Brainfuck program is serving the HTML file to our
+        clients. Don't believe me?
+        <b>This blog post is served with Brainfuck</b>.
+      </p>
+
+      <h2>Conclusion</h2>
+
+      <p>It is possible to serve HTML files with Brainfuck.</p>
+
+      <p>It is possible to serve a lot of things with Brainfuck.</p>
+
+      <p>
+        If you can manage to parse it, you also can read the request and do
+        routing as well, I guess.
+      </p>
+
+      <p>
+        In my M2 Macbook, my Brainfuck server serves this HTML file just under
+        100ms which is not that bad. If someone wants make a benchmark I would
+        love to take a look. The whole code is in my
+        <a
+          href="https://github.com/canpacis/brainfuck-server"
+          rel="noreferrer noopener"
+          target="_blank"
+          >github</a
+        >
+        so go check it out if you want.
+      </p>
+    </main>
+  </body>
+</html>
